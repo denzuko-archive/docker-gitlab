@@ -36,11 +36,11 @@ services:
           'findtime' => ${GITLAB_GIT_BASIC_AUTH_FIND_TIME}, 
           'bantime' => ${GITLAB_GIT_BASIC_AUTH_BAN_TIME} 
         }
-  volumes:
-    - ${USER_PATH}/gitlab/config:/etc/gitlab
-    - ${USER_PATH}/gitlab/logs:/var/log/gitlab
-    - ${USER_PATH}/gitlab/data:/var/opt/gitlab
-    - ${USER_PATH}/gitlab/backups:/var/opt/gitlab/backups
-  ports:
-    - "${GITLAB_HTTP_HOST_PORT}:${GITLAB_HTTP_INTERNAL_PORT}"
-    - "${GITLAB_SHELL_PORT}:22"
+    volumes:
+      - ${USER_PATH}/gitlab/config:/etc/gitlab
+      - ${USER_PATH}/gitlab/logs:/var/log/gitlab
+      - ${USER_PATH}/gitlab/data:/var/opt/gitlab
+      - ${USER_PATH}/gitlab/backups:/var/opt/gitlab/backups
+    ports:
+      - "${GITLAB_HTTP_HOST_PORT}:${GITLAB_HTTP_INTERNAL_PORT}"
+      - "${GITLAB_SHELL_PORT}:22"
