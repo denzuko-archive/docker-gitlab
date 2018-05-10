@@ -1,7 +1,48 @@
 ---
 version: '3.4'
-
 services:
+  proxy:
+    image: traefik
+    networks:
+      - traefik
+    ports:
+      - "80:80"
+      - "8080:8080"
+      - "443:443"
+    volumes:
+      -  "$PWD/traefik.toml:/etc/traefik/traefik.toml"
+      -  "$PWD/acme:/etc/traefik/acme"
+      - /var/run/docker.sock:/var/run/docker.sock
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    labels:
+      - "traefik.frontend.rule=Host:traefik.cab.re"
+      - "traefik.port=8080"
+      - "traefik.backend=traefik"
+      - "traefik.frontend.entryPoints=http,https"
+
+  portainer:
+    image: portainer/portainer
+    networks:
+      - traefik
+    labels:
+      - "traefik.frontend.rule=Host:cloud.dwightaspencer.com"
+      - "traefik.port=9000"
+      - "traefik.backend=portainer"
+      - "traefik.frontend.entryPoints=http,https"
+    volumes:
+        - "/var/run/docker.sock:/var/run/docker.sock"
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+
   gitlab:
     tags:
       - gitlab
@@ -15,7 +56,7 @@ services:
     environment:
       GITLAB_OMNIBUS_CONFIG: |
         external_url '${GITLAB_EXTERNAL_URL}'
-        gitlab_rails['gitlab_shell_ssh_port'] = ${GITLAB_SHELL_PORT}
+        gitlab_rails['gitlab_shell_traefik.port=80_port'] = ${GITLAB_SHELL_PORT}
         nginx['redirect_http_to_https'] = ${GITLAB_REDIRECT_HTTPS}
         nginx['ssl_certificate'] = "${GITLAB_SSL_CERT}"
         nginx['ssl_certificate_key'] = "${GITLAB_SSL_KEY}"
@@ -41,6 +82,28 @@ services:
       - ${USER_PATH}/gitlab/logs:/var/log/gitlab
       - ${USER_PATH}/gitlab/data:/var/opt/gitlab
       - ${USER_PATH}/gitlab/backups:/var/opt/gitlab/backups
+    labels:
+      - "orbiter.up=3"
+      - "orbiter.down=2"
+      - "orbiter=true"
+      - "com.github.jrcs.letsencrypt_nginx_proxy_companion.nginx_proxy"
+      - "com.centurylinklabs.watchtower.enable"
+      - "traefik.docker.network=public"
+      - "traefik.frontend.rule=Host:github.dwightaspencer.com"
+      - "traefik.port=80"
+      - "traefik.backend=gitlab"
+      - "traefik.frontend.entryPoints=http,https"
+      - "traefik.docker.network=traefik"
     ports:
       - "${GITLAB_HTTP_HOST_PORT}:${GITLAB_HTTP_INTERNAL_PORT}"
       - "${GITLAB_SHELL_PORT}:22"
+    networks:
+      - gitlab
+      - public
+
+networks:
+  gitlab:
+    driver: bridge
+  traefik:
+    external:
+      name: public
